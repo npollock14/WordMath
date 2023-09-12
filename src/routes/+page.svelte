@@ -105,12 +105,15 @@
 </script>
 
 <main
-  class="min-h-screen flex flex-col items-center justify-center bg-gray-900"
+  class="min-h-screen flex flex-col items-center justify-center bg-gray-900 px-4 sm:px-0"
 >
   <ModelSelect bind:selectedModel {models} />
-  <div class="flex items-center text-6xl md:text-8xl leading-none space-x-4">
+
+  <div
+    class="flex flex-col sm:flex-row items-center text-4xl sm:text-6xl md:text-8xl leading-none space-y-4 sm:space-y-0 sm:space-x-4"
+  >
     <input
-      class="text-white bg-transparent text-right text-6xl md:text-8xl leading-none rounded-md p-2 font-bold"
+      class="text-white bg-transparent text-center sm:text-right w-full sm:w-auto text-4xl sm:text-6xl md:text-8xl leading-none rounded-md p-2 font-bold"
       style="box-sizing: border-box; min-width: 100px; outline: 3px solid lightgray;"
       placeholder={placeholderText}
       use:resizeInputOnDynamicContent
@@ -143,7 +146,7 @@
 
     {#if showResults}
       <div
-        class="mt-4 text-lg md:text-xl text-white overflow-hidden bg-gray-800 rounded-md shadow p-4"
+        class="mt-4 text-base sm:text-lg md:text-xl text-white overflow-hidden bg-gray-800 rounded-md shadow p-4"
       >
         <ul>
           {#each results.slice(1) as result, index (index)}
