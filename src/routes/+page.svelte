@@ -1,129 +1,113 @@
 <script>
-  import { parse } from "postcss";
-  import { get } from "svelte/store";
+  import { onMount } from "svelte";
+  import { resizeInputOnDynamicContent, getOperands, models } from "./utils";
+  import ModelSelect from "$lib/components/ModelSelect.svelte";
+  import TopResult from "../lib/components/TopResult.svelte";
 
-  let expression = "";
+  let expression = "king-man+woman";
   let results = [];
-  let placeholderText = "king-man+woman";
-  let evaluating = false;
+  let placeholderText = expression;
   let lastEvaluatedTime = 0;
+  let selectedModel = models[0];
+  let isLoading = true;
+  let showResults = false;
+  let isError = false;
 
-  function getOperands(expression) {
-    // gets the operands ex extracts king and man from "king + man"
-    // split on + or - and trim extra whitespace
-    let operands = expression.split(/[-+]/).map((operand) => operand.trim());
-    // remove empty strings
-    operands = operands.filter((operand) => operand.length > 0);
-    return operands;
+  async function getResults(expression) {
+    // Ensure the provided expression is URL-encoded
+    const encodedExpression = encodeURIComponent(expression);
+
+    const response = await fetch(
+      `/api/embeddingsearch?query=${encodedExpression}&model=${selectedModel.name}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    let result = await response.json();
+    if (result.body) {
+      return result.body;
+    }
+    return result;
   }
 
+  function isNormalResults() {
+    console.log(results.length);
+    return results.length > 1;
+  }
+
+  onMount(() => {
+    const input = document.querySelector("input");
+    resizeInputOnDynamicContent(input);
+    // also evaluate the expression on mount
+    evaluateWrapper(expression);
+  });
+
   async function evaluateExpression(expression) {
-    console.log("Evaluating expression");
-    if (evaluating) {
-      return;
-    }
-    console.log(expression.trim().length);
-    if (expression.trim().length > 100) {
-      return;
-    }
-    console.log("Here");
+    console.log(
+      "Evaluating expression: ",
+      expression,
+      "with model: ",
+      selectedModel
+    );
 
-    let now = Date.now();
-    console.log(now - lastEvaluatedTime);
-    if (now - lastEvaluatedTime < 1000) {
-      return;
-    }
-    evaluating = true;
-    lastEvaluatedTime = now;
+    let response = await getResults(expression);
 
-    results = ["..."];
-    console.log("Evaluating expression: ", expression);
-    console.log("Sending request to backend!");
-    let response = await fetch("", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": "", //frontend API key
-      },
-      body: JSON.stringify({ query: expression }),
-    });
-    response = await response.json();
     let nearest_words = response["nearest_words"];
-    if (!nearest_words) {
-      results = ["No results found"];
-      return;
-    }
+    let distances = response["distances"];
+
     let operands = getOperands(expression);
-    console.log("Operands:" + operands);
-    console.log("Nearest words: " + nearest_words);
-    results = nearest_words.filter((word) => !operands.includes(word));
+    let filteredResults = [];
+    for (let i = 0; i < nearest_words.length; i++) {
+      let distance = distances[i];
+      let word = nearest_words[i];
+      if (operands.includes(word)) {
+        continue;
+      }
+      filteredResults.push({
+        word: word,
+        distance: distance,
+      });
+    }
+    results = filteredResults;
     console.log(results);
   }
 
-  function handleInput(event) {
-    expression = event.target.value;
-    console.log(expression);
-    if (expression.trim().length > 0) {
-      evaluateExpression(expression);
+  async function evaluateWrapper(expression) {
+    if (
+      expression.trim().length > 0 &&
+      expression.trim().length < 100 &&
+      Date.now() - lastEvaluatedTime > 1000
+    ) {
+      lastEvaluatedTime = Date.now();
+      isError = false;
+      isLoading = true;
+      try {
+        await evaluateExpression(expression);
+        isLoading = false;
+      } catch (e) {
+        console.log(e);
+        isLoading = false;
+        isError = true;
+      }
     } else {
-      results = ["..."];
+      isError = true;
     }
   }
-  let showResults = false;
 
-  function resizeInputOnDynamicContent(node) {
-    const measuringElement = document.createElement("div");
-    document.body.appendChild(measuringElement);
-
-    function duplicateAndSet() {
-      const styles = window.getComputedStyle(node);
-      measuringElement.innerHTML = node.value || node.placeholder;
-      measuringElement.style.fontSize = styles.fontSize;
-      measuringElement.style.fontFamily = styles.fontFamily;
-      measuringElement.style.paddingLeft = styles.paddingLeft;
-      measuringElement.style.paddingRight = styles.paddingRight;
-      measuringElement.style.fontWeight = styles.fontWeight;
-      measuringElement.style.minWidth = styles.minWidth;
-      measuringElement.style.maxWidth = styles.maxWidth;
-      measuringElement.style.boxSizing = "border-box";
-      measuringElement.style.border = styles.border;
-      measuringElement.style.width = "max-content";
-      measuringElement.style.position = "absolute";
-      measuringElement.style.top = "0";
-      measuringElement.style.left = "-9999px";
-      measuringElement.style.overflow = "hidden";
-      measuringElement.style.visibility = "hidden";
-      measuringElement.style.whiteSpace = "pre";
-      measuringElement.style.height = "0";
-      //   if width > 100% of parent width, set width to 90% of screen width
-      if (measuringElement.offsetWidth > screen.width * 0.9) {
-        measuringElement.style.width = `${node.parentNode.offsetWidth}px`;
-      } else {
-        node.style.width = `${measuringElement.offsetWidth}px`;
-      }
-    }
-
-    duplicateAndSet();
-    const observer = new MutationObserver(duplicateAndSet);
-    observer.observe(node, {
-      attributes: true,
-      childList: true,
-      subtree: true,
-    });
-
-    node.addEventListener("input", duplicateAndSet);
-    return {
-      destroy() {
-        observer.disconnect(node);
-        node.removeEventListener("input", duplicateAndSet);
-      },
-    };
+  function handleExpressionInput(event) {
+    expression = event.target.value;
+    console.log(expression);
+    evaluateWrapper(expression);
   }
 </script>
 
 <main
   class="min-h-screen flex flex-col items-center justify-center bg-gray-900"
 >
+  <ModelSelect bind:selectedModel {models} />
   <div class="flex items-center text-6xl md:text-8xl leading-none space-x-4">
     <input
       class="text-white bg-transparent text-right text-6xl md:text-8xl leading-none rounded-md p-2 font-bold"
@@ -133,21 +117,30 @@
       bind:value={expression}
       on:focusout={() => (placeholderText = "king-man+woman")}
       on:focus={() => (placeholderText = "")}
-      on:keydown={(e) => e.keyCode === 13 && handleInput(e)}
+      on:keydown={(e) => e.keyCode === 13 && handleExpressionInput(e)}
     />
 
     <span class="text-white mx-4">=</span>
   </div>
-  <div class="text-6xl md:text-8xl leading-none text-white">
-    {results[0]}
-  </div>
-  {#if results.length > 1}
-    <button
-      class="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition duration-200 focus:outline-none"
-      on:click={() => (showResults = !showResults)}
-    >
-      Additional Results
-    </button>
+  <TopResult bind:results bind:isLoading bind:isError />
+
+  {#if isNormalResults()}
+    {#if !showResults}
+      <button
+        class="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition duration-200 focus:outline-none"
+        on:click={() => (showResults = !showResults)}
+      >
+        Additional Results
+      </button>
+    {:else}
+      <button
+        class="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition duration-200 focus:outline-none"
+        on:click={() => (showResults = !showResults)}
+      >
+        Hide Results
+      </button>
+    {/if}
+
     {#if showResults}
       <div
         class="mt-4 text-lg md:text-xl text-white overflow-hidden bg-gray-800 rounded-md shadow p-4"
