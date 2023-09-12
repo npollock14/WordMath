@@ -104,6 +104,14 @@
   }
 </script>
 
+<svelte:head>
+  <title>Word Math</title>
+  <meta
+    name="description"
+    content="Explore relationships between words using vector embeddings! Apply math operations on the semantic meaning of words. Ex: King-Man+Woman=Queen"
+  />
+</svelte:head>
+
 <main
   class="min-h-screen flex flex-col items-center justify-center bg-gray-900 px-4 sm:px-0"
 >
