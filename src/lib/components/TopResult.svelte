@@ -5,10 +5,15 @@
     export let isLoading = false;
     export let isError = false;
 
+    let showAdditionalResults = false;
     const resultItemFormat = {
         word: "",
         distance: 0,
     };
+
+    function toggleAdditionalResults() {
+        showAdditionalResults = !showAdditionalResults;
+    }
 
     const error = {
         message: "Error - check expression",
@@ -34,6 +39,29 @@
             </span>
         </Tooltip>
     </div>
+
+    {#if results.length > 1}
+        <button
+            on:click={toggleAdditionalResults}
+            class="mt-4 arrow-button text-gray-400"
+        >
+            {showAdditionalResults ? "▲" : "▼"}
+            {showAdditionalResults ? "hide" : "see more"}
+        </button>
+
+        {#if showAdditionalResults}
+            <div class="additional-results mt-4 text-white">
+                {#each results.slice(1) as result (result.word)}
+                    <div class="result-item">
+                        {result.word}
+                        <span class="distance text-gray-400"
+                            >({result.distance.toFixed(2)})</span
+                        >
+                    </div>
+                {/each}
+            </div>
+        {/if}
+    {/if}
 {/if}
 
 <style>
@@ -41,5 +69,18 @@
         font-size: 1.5rem;
         margin-left: 1rem;
         vertical-align: middle;
+    }
+    .arrow-button {
+        background: transparent;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+    }
+    .additional-results {
+        margin-top: 1rem;
+        font-size: 1.5rem;
+    }
+    .result-item {
+        margin-bottom: 0.5rem;
     }
 </style>
