@@ -30,7 +30,7 @@ export async function GET({ url }) {
   const encodedQuery = encodeURIComponent(query);
   const encodedModel = encodeURIComponent(model);
 
-  const endpoint = `https://0aum8r5hl5.execute-api.us-west-1.amazonaws.com/dev/search?query=${encodedQuery}&model=${encodedModel}`;
+  const endpoint = `https://qciewt6esh.execute-api.us-east-1.amazonaws.com/dev/search?query=${encodedQuery}&model=${encodedModel}`;
   let response = undefined;
   try {
     response = await fetch(endpoint, {
