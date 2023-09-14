@@ -123,12 +123,20 @@
     <input
       class="text-white bg-transparent text-center sm:text-right w-full sm:w-auto text-4xl sm:text-6xl md:text-8xl leading-none rounded-md p-2 font-bold"
       style="box-sizing: border-box; min-width: 100px; outline: 3px solid lightgray;"
+      id="expression-input"
       placeholder={placeholderText}
       use:resizeInputOnDynamicContent
       bind:value={expression}
-      on:focusout={() => (placeholderText = "king-man+woman")}
+      on:focusout={() => {
+        placeholderText = "king-man+woman";
+      }}
       on:focus={() => (placeholderText = "")}
-      on:keydown={(e) => e.keyCode === 13 && handleExpressionInput(e)}
+      on:keydown={(e) => {
+        if (e.keyCode === 13) {
+          e.target.blur(); // Will hide the keyboard on mobile
+          handleExpressionInput(e);
+        }
+      }}
     />
 
     <span class="text-white mx-4">=</span>
