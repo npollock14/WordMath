@@ -52,3 +52,4 @@ This process doesn't always result in perfect analogies, but it's a fascinating 
 
 - king - man + woman = queen
 - japan - sushi + pizza = italy
+- airplane - air + road = automobile
